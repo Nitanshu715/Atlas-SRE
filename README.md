@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/Nitanshu715/Atlas-SRE/main/docs/assets/atlas-banner.png" alt="ATLAS-SRE Banner" />
+  <img src="https://raw.githubusercontent.com/Nitanshu715/Atlas-SRE/main/docs/assets" />
 </p>
 
 <h1 align="center">ATLAS-SRE</h1>
