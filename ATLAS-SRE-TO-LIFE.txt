@@ -1,0 +1,152 @@
+
+ATLAS-SRE-TO-LIFE.txt
+====================
+
+This file contains ALL commands required to:
+1) Safely DELETE all running AWS resources (to avoid billing)
+2) REBUILD the entire ATLAS-SRE project from ZERO
+3) Reach the FINAL working state using ONLY commands in this file
+
+------------------------------------------------------------
+SECTION 0: PREREQUISITES (RUN ON A FRESH SYSTEM)
+------------------------------------------------------------
+
+# Verify installed tools
+aws --version
+kubectl version --client
+docker --version
+git --version
+eksctl version
+helm version
+
+------------------------------------------------------------
+SECTION 1: AWS CONFIGURATION
+------------------------------------------------------------
+
+# Configure AWS CLI
+aws configure
+# Enter:
+# Access Key
+# Secret Key
+# Region: ap-south-1
+# Output: json
+
+# Verify identity
+aws sts get-caller-identity
+
+------------------------------------------------------------
+SECTION 2: CREATE EKS CLUSTER
+------------------------------------------------------------
+
+eksctl create cluster `
+  --name atlas-cluster `
+  --region ap-south-1 `
+  --nodegroup-name atlas-nodes `
+  --node-type t3.medium `
+  --nodes 2 `
+  --managed
+
+kubectl get nodes
+
+------------------------------------------------------------
+SECTION 3: ENABLE OIDC FOR IAM
+------------------------------------------------------------
+
+eksctl utils associate-iam-oidc-provider `
+  --region ap-south-1 `
+  --cluster atlas-cluster `
+  --approve
+
+------------------------------------------------------------
+SECTION 4: INSTALL AWS LOAD BALANCER CONTROLLER
+------------------------------------------------------------
+
+# Create service account
+eksctl create iamserviceaccount `
+  --cluster atlas-cluster `
+  --namespace kube-system `
+  --name aws-load-balancer-controller `
+  --attach-policy-arn arn:aws:iam::<ACCOUNT_ID>:policy/AWSLoadBalancerControllerIAMPolicy `
+  --approve
+
+# Install controller
+helm repo add eks https://aws.github.io/eks-charts
+helm repo update
+
+helm install aws-load-balancer-controller eks/aws-load-balancer-controller `
+  -n kube-system `
+  --set clusterName=atlas-cluster `
+  --set serviceAccount.create=false `
+  --set serviceAccount.name=aws-load-balancer-controller
+
+kubectl get pods -n kube-system | findstr load-balancer
+
+------------------------------------------------------------
+SECTION 5: BUILD & PUSH DOCKER IMAGE
+------------------------------------------------------------
+
+cd services/api-service
+
+docker build -t atlas-api:1.0 .
+
+aws ecr create-repository --repository-name atlas-api
+
+aws ecr get-login-password --region ap-south-1 | docker login --username AWS --password-stdin <ACCOUNT_ID>.dkr.ecr.ap-south-1.amazonaws.com
+
+docker tag atlas-api:1.0 <ACCOUNT_ID>.dkr.ecr.ap-south-1.amazonaws.com/atlas-api:1.0
+docker push <ACCOUNT_ID>.dkr.ecr.ap-south-1.amazonaws.com/atlas-api:1.0
+
+------------------------------------------------------------
+SECTION 6: DEPLOY TO KUBERNETES
+------------------------------------------------------------
+
+kubectl create namespace production
+
+kubectl apply -f k8s/api/deployment.yaml
+kubectl apply -f k8s/api/service.yaml
+kubectl apply -f k8s/api/ingress.yaml
+
+kubectl get pods -n production
+kubectl get ingress -n production
+
+------------------------------------------------------------
+SECTION 7: OBSERVABILITY STACK
+------------------------------------------------------------
+
+kubectl create namespace observability
+
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm repo update
+
+helm install monitoring prometheus-community/kube-prometheus-stack -n observability
+
+kubectl get pods -n observability
+
+# Expose Grafana
+kubectl patch svc monitoring-grafana -n observability --type='json' -p='[{"op":"replace","path":"/spec/type","value":"LoadBalancer"}]'
+
+kubectl get svc monitoring-grafana -n observability
+
+------------------------------------------------------------
+SECTION 8: FAILURE TESTING
+------------------------------------------------------------
+
+kubectl delete pod <POD_NAME> -n production
+kubectl get pods -n production
+
+------------------------------------------------------------
+SECTION 9: TEARDOWN (VERY IMPORTANT)
+------------------------------------------------------------
+
+kubectl delete namespace production
+kubectl delete namespace observability
+
+helm uninstall aws-load-balancer-controller -n kube-system
+helm uninstall monitoring -n observability
+
+eksctl delete cluster --name atlas-cluster --region ap-south-1
+
+aws ecr delete-repository --repository-name atlas-api --force
+
+------------------------------------------------------------
+END OF FILE
