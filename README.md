@@ -1,104 +1,248 @@
 <p align="center">
-  <img src="https://user-images.githubusercontent.com/placeholder/atlas-banner.png" alt="ATLAS-SRE Banner" />
+  <img src="https://raw.githubusercontent.com/Nitanshu715/Atlas-SRE/main/docs/assets/atlas-banner.png" alt="ATLAS-SRE Banner" />
 </p>
 
 <h1 align="center">ATLAS-SRE</h1>
 
 <p align="center">
-  <b>Production-Grade DevOps & Site Reliability Engineering Platform on AWS</b>
-</p>
-
-<p align="center">
-  <i>Built to prove reliability, not just deployment.</i>
+  <b>Production-Grade DevOps & Site Reliability Engineering Platform</b><br/>
+  <i>Designed, deployed, observed, and broken on purpose.</i>
 </p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/AWS-EKS-orange?style=for-the-badge&logo=amazonaws"/>
   <img src="https://img.shields.io/badge/Kubernetes-Production-blue?style=for-the-badge&logo=kubernetes"/>
-  <img src="https://img.shields.io/badge/Observability-Prometheus%20%7C%20Grafana-purple?style=for-the-badge&logo=grafana"/>
+  <img src="https://img.shields.io/badge/SRE-Observability%20Focused-purple?style=for-the-badge&logo=grafana"/>
 </p>
 
 ---
 
-## 🧠 What is ATLAS-SRE?
+## 🌍 Project Overview
 
-ATLAS-SRE is a production-focused DevOps & Site Reliability Engineering project built on AWS EKS.
+**ATLAS-SRE** is a full end-to-end **Site Reliability Engineering (SRE) focused DevOps project**
+built on **AWS Elastic Kubernetes Service (EKS)**.
 
-This project prioritizes:
-- Reliability over feature count
-- Observability from day one
-- Failure handling and recovery
-- Real-world Kubernetes operations
+This project is intentionally **not** a tutorial clone, not a YAML dump, and not a feature-heavy
+microservices demo.
+
+Instead, ATLAS-SRE was built to answer a single production question:
+
+> *Can this system survive failures while remaining observable and stable?*
+
+Everything in this repository exists to support that goal.
 
 ---
 
-## 🏗️ Architecture Overview
+## 🎯 Core Objectives
 
-User Traffic  
-→ AWS Application Load Balancer (ALB)  
-→ Kubernetes Ingress  
-→ Production Namespace  
-→ atlas-api Pods  
-→ Metrics collected via Prometheus  
-→ Visualized in Grafana
+ATLAS-SRE was designed around the following objectives:
+
+- Build a real Kubernetes cluster on AWS (not local)
+- Deploy a production application with proper isolation
+- Implement ingress and cloud-native networking
+- Add full observability (metrics + dashboards)
+- Simulate real production failures
+- Verify self-healing and recovery
+- Document reliability outcomes clearly
+
+---
+
+## 🧠 SRE Mindset Behind the Project
+
+Traditional DevOps projects often stop after deployment.
+
+ATLAS-SRE goes further by focusing on:
+
+- **Reliability over features**
+- **Observability before scale**
+- **Failure as a first-class citizen**
+- **Automation instead of manual recovery**
+
+This mirrors how modern SRE teams operate in real organizations.
+
+---
+
+## 🏗️ Architecture Deep Dive
+
+```text
+User
+ └── AWS Application Load Balancer (ALB)
+      └── Kubernetes Ingress Controller
+           └── Production Namespace
+                └── atlas-api Deployment
+                     ├── Pod 1
+                     └── Pod 2
+                          ↓
+                Prometheus Metrics Collection
+                          ↓
+                    Grafana Dashboards
+```
+
+### Key Architectural Decisions
+
+- **AWS EKS** was chosen for managed control-plane reliability
+- **Namespaces** isolate production and observability workloads
+- **ALB Ingress** provides cloud-native traffic routing
+- **Minimal microservices** avoid unnecessary complexity
 
 ---
 
 ## ⚙️ Technology Stack
 
-- AWS (EKS, ALB, IAM)
+### Cloud & Infrastructure
+- AWS EKS
+- AWS EC2 Managed Node Groups
+- AWS Application Load Balancer
+- IAM Roles & Policies
+
+### Container & Orchestration
 - Docker
 - Kubernetes
-- Prometheus
-- Grafana
+
+### Observability
+- Prometheus (metrics scraping)
+- Grafana (visualization)
+
+### Tooling
+- kubectl
+- eksctl
+- Helm
 - Git & GitHub
 
 ---
 
-## 🔍 Observability
+## 🚀 Application Deployment
 
-Grafana dashboards provide:
-- Cluster-level metrics
+The application (`atlas-api`) is a lightweight service designed to:
+
+- Generate traffic
+- Consume resources predictably
+- Expose metrics naturally
+- Fail safely
+
+Deployment characteristics:
+- Replica-based scaling
+- Resource requests & limits
+- Readiness and liveness probes
+- Zero manual restarts required
+
+---
+
+## 🌐 Networking & Ingress
+
+- External traffic enters through AWS ALB
+- Kubernetes Ingress routes traffic to services
+- Services forward traffic to pods
+- Load balancing handled automatically
+
+This setup reflects **real cloud-native networking**, not port-forward hacks.
+
+---
+
+## 📊 Observability Implementation
+
+Observability was treated as a **first-class requirement**, not an afterthought.
+
+### Metrics Collected
+- CPU utilization
+- Memory utilization
+- Pod health
 - Namespace-level resource usage
-- Pod CPU and memory monitoring
 
-Accessed securely using port-forwarding.
+### Dashboards Used
+- Kubernetes Cluster Overview
+- Compute Resources (Cluster)
+- Compute Resources (Pods)
+- Networking metrics
 
----
-
-## 🧪 Failure Testing
-
-A production pod was manually deleted to simulate failure.
-
-Kubernetes automatically:
-- Detected the failure
-- Recreated the pod
-- Restored the desired state
-
-This behavior was observed live via Grafana dashboards.
+Grafana was deployed **inside the cluster** and accessed securely,
+which aligns with real production security practices.
 
 ---
 
-## 📄 Documentation
+## 🧪 Failure Scenarios & Reliability Testing
 
-- `docs/failure-scenarios.md` – detailed SRE failure analysis
+### Scenario 1: Pod Failure
+
+A production pod was manually deleted to simulate runtime failure.
+
+#### Detection
+- Kubernetes immediately detected pod termination
+- Grafana showed a brief CPU usage dip
+
+#### Mitigation
+- Deployment controller recreated the pod automatically
+- Desired replica count restored without intervention
+
+#### Outcome
+- Application remained available
+- No manual recovery required
+- Self-healing behavior verified
+
+Full documentation available in:
+`docs/failure-scenarios.md`
 
 ---
 
-## 🎯 What This Project Proves
+## 🛠️ Challenges Faced & Solutions
 
-- Real AWS EKS deployment experience
-- Kubernetes reliability and self-healing
-- Production-grade observability
-- SRE mindset and debugging skills
+### Grafana Access in AWS
+- AWS Managed Grafana unavailable in region
+- Solution: Self-hosted Grafana inside EKS
+
+### LoadBalancer Port Conflicts
+- Multiple ports caused LB routing issues
+- Solution: Clean service recreation with explicit ports
+
+### Security Group Restrictions
+- External traffic blocked by default SGs
+- Solution: Verified via port-forwarding (production-safe)
+
+These challenges reflect **real-world cloud debugging**, not lab environments.
 
 ---
 
-## 🧠 Final Note
+## 📁 Repository Structure
+
+```text
+Atlas-SRE/
+├── services/
+│   └── api-service/
+├── k8s/
+│   └── api/
+├── observability/
+├── docs/
+│   └── failure-scenarios.md
+└── README.md
+```
+
+---
+
+## ✅ What This Project Demonstrates
+
+- Real AWS EKS operations
+- Kubernetes reliability patterns
+- Observability-driven debugging
+- Failure injection & recovery
+- Production engineering mindset
+
+This single project replaces multiple shallow DevOps demos.
+
+---
+
+## 🏁 Final Thoughts
 
 ATLAS-SRE is intentionally focused.
 
 No unnecessary tools.  
-No artificial scaling claims.  
-Just real infrastructure, real failures, and real recovery.
+No artificial scale claims.  
+No buzzword overload.
+
+Just:
+- Real infrastructure
+- Real failures
+- Real recovery
+- Real observability
+
+This is how modern systems are actually built and maintained.
 
