@@ -162,7 +162,7 @@ which aligns with real production security practices.
 
 ## 🧪 Failure Scenarios & Reliability Testing
 
-### Scenario 1: Pod Failure
+### Scenario: Pod Failure
 
 A production pod was manually deleted to simulate runtime failure.
 
